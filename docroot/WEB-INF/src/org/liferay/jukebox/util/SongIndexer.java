@@ -17,17 +17,23 @@ package org.liferay.jukebox.util;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
+import com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.search.BaseIndexer;
 import com.liferay.portal.kernel.search.BooleanQuery;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.search.RelatedEntryIndexer;
 import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.SearchEngineUtil;
 import com.liferay.portal.kernel.search.Summary;
+import com.liferay.portal.kernel.search.filter.BooleanFilter;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.StringPool;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,12 +50,11 @@ import org.liferay.jukebox.service.AlbumLocalServiceUtil;
 import org.liferay.jukebox.service.ArtistLocalServiceUtil;
 import org.liferay.jukebox.service.SongLocalServiceUtil;
 import org.liferay.jukebox.service.permission.SongPermission;
-import org.liferay.jukebox.service.persistence.SongActionableDynamicQuery;
 
 /**
  * @author Eudaldo Alonso
  */
-public class SongIndexer extends BaseIndexer {
+public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexer {
 
 	public static final String[] CLASS_NAMES = {Song.class.getName()};
 
@@ -63,10 +68,10 @@ public class SongIndexer extends BaseIndexer {
 	public void addRelatedEntryFields(Document document, Object obj)
 		throws Exception {
 
-		if (obj instanceof DLFileEntry) {
-			DLFileEntry dlFileEntry = (DLFileEntry)obj;
+		if (obj instanceof FileEntry) {
+			FileEntry fileEntry = (FileEntry)obj;
 
-			Song song = SongLocalServiceUtil.getSong(dlFileEntry.getClassPK());
+			Song song = SongLocalServiceUtil.getSong(fileEntry.getFileEntryId());
 
 			document.addKeyword(
 				Field.CLASS_NAME_ID,
@@ -97,11 +102,11 @@ public class SongIndexer extends BaseIndexer {
 	}
 
 	@Override
-	public void postProcessContextQuery(
-			BooleanQuery contextQuery, SearchContext searchContext)
+	public void postProcessContextBooleanFilter(
+			BooleanFilter contextBooleanFilter, SearchContext searchContext)
 		throws Exception {
 
-		addStatus(contextQuery, searchContext);
+		addStatus(contextBooleanFilter, searchContext);
 	}
 
 	@Override
@@ -119,16 +124,12 @@ public class SongIndexer extends BaseIndexer {
 	}
 
 	@Override
-	protected void doDelete(Object obj) throws Exception {
-		Song song = (Song)obj;
-
+	protected void doDelete(Song song) throws Exception {
 		deleteDocument(song.getCompanyId(), song.getSongId());
 	}
 
 	@Override
-	protected Document doGetDocument(Object obj) throws Exception {
-		Song song = (Song)obj;
-
+	protected Document doGetDocument(Song song) throws Exception {
 		Document document = getBaseModelDocument(PORTLET_ID, song);
 
 		document.addDate(Field.MODIFIED_DATE, song.getModifiedDate());
@@ -149,8 +150,8 @@ public class SongIndexer extends BaseIndexer {
 
 	@Override
 	protected Summary doGetSummary(
-		Document document, Locale locale, String snippet, PortletURL portletURL,
-		PortletRequest portletRequest, PortletResponse portletResponse) {
+			Document document, Locale locale, String snippet,
+			PortletRequest portletRequest, PortletResponse portletResponse) {
 
 		Summary summary = createSummary(document);
 
@@ -160,9 +161,7 @@ public class SongIndexer extends BaseIndexer {
 	}
 
 	@Override
-	protected void doReindex(Object obj) throws Exception {
-		Song song = (Song)obj;
-
+	protected void doReindex(Song song) throws Exception {
 		Document document = getDocument(song);
 
 		SearchEngineUtil.updateDocument(
@@ -190,31 +189,53 @@ public class SongIndexer extends BaseIndexer {
 
 	protected void reindexEntries(long companyId) throws PortalException {
 		final Collection<Document> documents = new ArrayList<Document>();
+			
+		final IndexableActionableDynamicQuery indexableActionableDynamicQuery =
+			SongLocalServiceUtil.getIndexableActionableDynamicQuery();
 
-		ActionableDynamicQuery actionableDynamicQuery =
-			new SongActionableDynamicQuery() {
+		indexableActionableDynamicQuery.setCompanyId(companyId);
+
+		indexableActionableDynamicQuery.setAddCriteriaMethod(
+			new ActionableDynamicQuery.AddCriteriaMethod() {
 
 			@Override
-			protected void addCriteria(DynamicQuery dynamicQuery) {
+			public void addCriteria(DynamicQuery dynamicQuery) {
 			}
 
-			@Override
-			protected void performAction(Object object) throws PortalException {
-				Song song = (Song)object;
+		});
+		indexableActionableDynamicQuery.setPerformActionMethod(
+			new ActionableDynamicQuery.PerformActionMethod<Song>() {
+				@Override
+				public void performAction(Song song) throws PortalException {					
+					Document document = getDocument(song);
 
-				Document document = getDocument(song);
-
-				documents.add(document);
+					if (document != null) {
+						indexableActionableDynamicQuery.addDocuments(
+							document);
+					}
+				}
 			}
+		);
 
-		};
-
-		actionableDynamicQuery.setCompanyId(companyId);
-
-		actionableDynamicQuery.performActions();
-
-		SearchEngineUtil.updateDocuments(
-			getSearchEngineId(), companyId, documents);
+		indexableActionableDynamicQuery.setSearchEngineId(getSearchEngineId());
+		indexableActionableDynamicQuery.performActions();
 	}
 
+	@Override
+	public String getClassName() {
+		return Song.class.getName();
+	}
+
+	@Override
+	public void addRelatedClassNames(BooleanFilter arg0, SearchContext arg1) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void updateFullQuery(SearchContext arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+	
 }
