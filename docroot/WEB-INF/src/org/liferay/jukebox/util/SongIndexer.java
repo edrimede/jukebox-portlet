@@ -14,7 +14,6 @@
 
 package org.liferay.jukebox.util;
 
-import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery;
@@ -33,7 +32,6 @@ import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.kernel.util.StringPool;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +39,6 @@ import java.util.Locale;
 
 import javax.portlet.PortletRequest;
 import javax.portlet.PortletResponse;
-import javax.portlet.PortletURL;
 
 import org.liferay.jukebox.model.Album;
 import org.liferay.jukebox.model.Artist;
@@ -54,7 +51,8 @@ import org.liferay.jukebox.service.permission.SongPermission;
 /**
  * @author Eudaldo Alonso
  */
-public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexer {
+public class SongIndexer
+	extends BaseIndexer<Song> implements RelatedEntryIndexer {
 
 	public static final String[] CLASS_NAMES = {Song.class.getName()};
 
@@ -65,13 +63,22 @@ public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexe
 	}
 
 	@Override
+	public void addRelatedClassNames(BooleanFilter arg0, SearchContext arg1)
+		throws Exception {
+
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
 	public void addRelatedEntryFields(Document document, Object obj)
 		throws Exception {
 
 		if (obj instanceof FileEntry) {
 			FileEntry fileEntry = (FileEntry)obj;
 
-			Song song = SongLocalServiceUtil.getSong(fileEntry.getFileEntryId());
+			Song song = SongLocalServiceUtil.getSong(
+				fileEntry.getFileEntryId());
 
 			document.addKeyword(
 				Field.CLASS_NAME_ID,
@@ -79,6 +86,11 @@ public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexe
 			document.addKeyword(Field.CLASS_PK, song.getSongId());
 			document.addKeyword(Field.RELATED_ENTRY, true);
 		}
+	}
+
+	@Override
+	public String getClassName() {
+		return Song.class.getName();
 	}
 
 	@Override
@@ -124,6 +136,13 @@ public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexe
 	}
 
 	@Override
+	public void updateFullQuery(SearchContext arg0) {
+
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
 	protected void doDelete(Song song) throws Exception {
 		deleteDocument(song.getCompanyId(), song.getSongId());
 	}
@@ -150,8 +169,8 @@ public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexe
 
 	@Override
 	protected Summary doGetSummary(
-			Document document, Locale locale, String snippet,
-			PortletRequest portletRequest, PortletResponse portletResponse) {
+		Document document, Locale locale, String snippet,
+		PortletRequest portletRequest, PortletResponse portletResponse) {
 
 		Summary summary = createSummary(document);
 
@@ -188,8 +207,8 @@ public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexe
 	}
 
 	protected void reindexEntries(long companyId) throws PortalException {
-		final Collection<Document> documents = new ArrayList<Document>();
-			
+		final Collection<Document> documents = new ArrayList<>();
+
 		final IndexableActionableDynamicQuery indexableActionableDynamicQuery =
 			SongLocalServiceUtil.getIndexableActionableDynamicQuery();
 
@@ -198,44 +217,28 @@ public class SongIndexer extends BaseIndexer<Song> implements RelatedEntryIndexe
 		indexableActionableDynamicQuery.setAddCriteriaMethod(
 			new ActionableDynamicQuery.AddCriteriaMethod() {
 
-			@Override
-			public void addCriteria(DynamicQuery dynamicQuery) {
-			}
+				@Override
+				public void addCriteria(DynamicQuery dynamicQuery) {
+				}
 
-		});
+			});
+
 		indexableActionableDynamicQuery.setPerformActionMethod(
 			new ActionableDynamicQuery.PerformActionMethod<Song>() {
+
 				@Override
-				public void performAction(Song song) throws PortalException {					
+				public void performAction(Song song) throws PortalException {
 					Document document = getDocument(song);
 
 					if (document != null) {
-						indexableActionableDynamicQuery.addDocuments(
-							document);
+						indexableActionableDynamicQuery.addDocuments(document);
 					}
 				}
-			}
-		);
+
+			});
 
 		indexableActionableDynamicQuery.setSearchEngineId(getSearchEngineId());
 		indexableActionableDynamicQuery.performActions();
 	}
 
-	@Override
-	public String getClassName() {
-		return Song.class.getName();
-	}
-
-	@Override
-	public void addRelatedClassNames(BooleanFilter arg0, SearchContext arg1) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void updateFullQuery(SearchContext arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-	
 }

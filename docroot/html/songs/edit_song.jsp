@@ -70,11 +70,11 @@ if (songId > 0) {
 
 	<aui:input label="lyrics-file" name="lyricsFile" type="file" />
 
-	<c:if test="<%= (song == null) %>">
+	<c:if test="<%= song == null %>">
 		<aui:field-wrapper label="permissions">
 			<liferay-ui:input-permissions
 				modelName="<%= Song.class.getName() %>"
-				/>
+			/>
 		</aui:field-wrapper>
 	</c:if>
 

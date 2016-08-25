@@ -14,7 +14,6 @@
 
 package org.liferay.jukebox.util;
 
-import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery;
@@ -33,7 +32,6 @@ import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
@@ -43,18 +41,16 @@ import java.util.Locale;
 
 import javax.portlet.PortletRequest;
 import javax.portlet.PortletResponse;
-import javax.portlet.PortletURL;
 
-import org.liferay.jukebox.model.Album;
 import org.liferay.jukebox.model.Artist;
-import org.liferay.jukebox.service.AlbumLocalServiceUtil;
 import org.liferay.jukebox.service.ArtistLocalServiceUtil;
 import org.liferay.jukebox.service.permission.ArtistPermission;
 
 /**
  * @author Eudaldo Alonso
  */
-public class ArtistIndexer extends BaseIndexer<Artist> implements RelatedEntryIndexer {
+public class ArtistIndexer
+	extends BaseIndexer<Artist> implements RelatedEntryIndexer {
 
 	public static final String[] CLASS_NAMES = {Artist.class.getName()};
 
@@ -65,13 +61,22 @@ public class ArtistIndexer extends BaseIndexer<Artist> implements RelatedEntryIn
 	}
 
 	@Override
+	public void addRelatedClassNames(BooleanFilter arg0, SearchContext arg1)
+		throws Exception {
+
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
 	public void addRelatedEntryFields(Document document, Object obj)
 		throws Exception {
 
 		if (obj instanceof FileEntry) {
 			FileEntry fileEntry = (FileEntry)obj;
 
-			Artist artist = ArtistLocalServiceUtil.getArtist(fileEntry.getFileEntryId());
+			Artist artist = ArtistLocalServiceUtil.getArtist(
+				fileEntry.getFileEntryId());
 
 			document.addKeyword(
 				Field.CLASS_NAME_ID,
@@ -79,6 +84,11 @@ public class ArtistIndexer extends BaseIndexer<Artist> implements RelatedEntryIn
 			document.addKeyword(Field.CLASS_PK, artist.getArtistId());
 			document.addKeyword(Field.RELATED_ENTRY, true);
 		}
+	}
+
+	@Override
+	public String getClassName() {
+		return Artist.class.getName();
 	}
 
 	@Override
@@ -123,6 +133,13 @@ public class ArtistIndexer extends BaseIndexer<Artist> implements RelatedEntryIn
 	}
 
 	@Override
+	public void updateFullQuery(SearchContext arg0) {
+
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
 	protected void doDelete(Artist artist) throws Exception {
 		deleteDocument(artist.getCompanyId(), artist.getArtistId());
 	}
@@ -141,8 +158,8 @@ public class ArtistIndexer extends BaseIndexer<Artist> implements RelatedEntryIn
 
 	@Override
 	protected Summary doGetSummary(
-			Document document, Locale locale, String snippet,
-			PortletRequest portletRequest, PortletResponse portletResponse) {
+		Document document, Locale locale, String snippet,
+		PortletRequest portletRequest, PortletResponse portletResponse) {
 
 		Summary summary = createSummary(document);
 
@@ -187,8 +204,8 @@ public class ArtistIndexer extends BaseIndexer<Artist> implements RelatedEntryIn
 	}
 
 	protected void reindexEntries(long companyId) throws PortalException {
-		final Collection<Document> documents = new ArrayList<Document>();
-			
+		final Collection<Document> documents = new ArrayList<>();
+
 		final IndexableActionableDynamicQuery indexableActionableDynamicQuery =
 			ArtistLocalServiceUtil.getIndexableActionableDynamicQuery();
 
@@ -197,44 +214,30 @@ public class ArtistIndexer extends BaseIndexer<Artist> implements RelatedEntryIn
 		indexableActionableDynamicQuery.setAddCriteriaMethod(
 			new ActionableDynamicQuery.AddCriteriaMethod() {
 
-			@Override
-			public void addCriteria(DynamicQuery dynamicQuery) {
-			}
+				@Override
+				public void addCriteria(DynamicQuery dynamicQuery) {
+				}
 
-		});
+			});
+
 		indexableActionableDynamicQuery.setPerformActionMethod(
 			new ActionableDynamicQuery.PerformActionMethod<Artist>() {
+
 				@Override
-				public void performAction(Artist artist) throws PortalException {					
+				public void performAction(Artist artist)
+					throws PortalException {
+
 					Document document = getDocument(artist);
 
 					if (document != null) {
-						indexableActionableDynamicQuery.addDocuments(
-							document);
+						indexableActionableDynamicQuery.addDocuments(document);
 					}
 				}
-			}
-		);
+
+			});
 
 		indexableActionableDynamicQuery.setSearchEngineId(getSearchEngineId());
 		indexableActionableDynamicQuery.performActions();
-	}
-
-	@Override
-	public String getClassName() {
-		return Artist.class.getName();
-	}
-
-	@Override
-	public void addRelatedClassNames(BooleanFilter arg0, SearchContext arg1) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void updateFullQuery(SearchContext arg0) {
-		// TODO Auto-generated method stub
-		
 	}
 
 }

@@ -69,7 +69,7 @@ if (albumId > 0) {
 
 	<aui:input name="file" type="file" />
 
-	<c:if test="<%= (album == null) %>">
+	<c:if test="<%= album == null %>">
 		<aui:field-wrapper label="permissions">
 			<liferay-ui:input-permissions
 				modelName="<%= Album.class.getName() %>"
